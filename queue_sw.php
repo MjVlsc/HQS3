@@ -148,321 +148,388 @@ $hasUpcomingQueues = count($allUpcomingQueues) > 0;
   <meta charset="UTF-8">
   <title>Queue - <?= htmlspecialchars($deptName) ?></title>
   <style>
+    :root {
+      --primary: #457b9d;
+      --primary-dark: #1d3557;
+      --secondary: #e63946;
+      --warning: #FF9800;
+      --danger: #f44336;
+      --success: #4CAF50;
+      --light-gray: #f5f5f5;
+      --gray: #e0e0e0;
+      --dark-gray: #757575;
+      --white: #ffffff;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--light-gray);
       padding: 20px;
-      display: flex;
-      justify-content: center;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 250px 1fr 250px;
       gap: 20px;
-      flex-wrap: wrap;
+      max-width: 1400px;
+      margin: 0 auto;
     }
-    .next-button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      background-color: #457b9d;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
+    
+    /* Side panels */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-
-    .next-button:hover {
-      background-color: #1d3557;
+    
+    /* Main content */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-    .queue-box {
-      background: #fff;
+    
+    /* Cards */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 600px;
-      max-width: 100%;
-    }
-    .pending-container, .postponed-container {
-      width: 200px;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
     
-    .pending-box, .postponed-box {
-      background: #fff8f8;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    .card:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary-dark);
       margin-bottom: 15px;
-    }
-    
-    .pending-title, .postponed-title {
-      font-size: 16px;
-      margin-bottom: 10px;
-      color: #d32f2f;
-      font-weight: bold;
-    }
-    
-    .pending-item, .postponed-item {
-      background: #ffebee;
-      padding: 8px;
-      margin-bottom: 8px;
-      border-radius: 6px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--gray);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     
-    .pending-number, .postponed-number {
-      font-weight: bold;
-      color: #d32f2f;
-    }
-    
-    .pending-actions {
+    .card-body {
       display: flex;
-      gap: 5px;
+      flex-direction: column;
+      gap: 12px;
     }
     
-    .pending-call-btn, .pending-complete-btn {
-      background: none;
+    /* Current queue display */
+    .current-queue {
+      text-align: center;
+      padding: 30px 20px;
+    }
+    
+    .queue-number {
+      font-size: 5rem;
+      font-weight: 700;
+      color: var(--secondary);
+      margin: 10px 0;
+      line-height: 1;
+    }
+    
+    .queue-details {
+      color: var(--dark-gray);
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+    }
+    
+    .queue-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 10px 16px;
       border: none;
+      border-radius: 8px;
+      font-weight: 600;
       cursor: pointer;
-      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
     }
     
-    .pending-call-btn {
-      color: #1976d2;
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 0.85rem;
     }
     
-    .pending-complete-btn {
-      color: #4CAF50;
+    .btn-primary {
+      background: var(--primary);
+      color: var(--white);
     }
     
-    .reactivate-btn {
-      background: none;
-      border: none;
-      color: #1976d2;
-      cursor: pointer;
-      font-size: 12px;
+    .btn-primary:hover {
+      background: var(--primary-dark);
     }
     
-    .current-number {
-      font-size: 60px;
-      color: #e63946;
+    .btn-success {
+      background: var(--success);
+      color: var(--white);
+    }
+    
+    .btn-success:hover {
+      background: #388E3C;
+    }
+    
+    .btn-warning {
+      background: var(--warning);
+      color: var(--white);
+    }
+    
+    .btn-warning:hover {
+      background: #F57C00;
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: var(--white);
+    }
+    
+    .btn-danger:hover {
+      background: #D32F2F;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: var(--white);
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    
+    /* Queue items */
+    .queue-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      background: var(--light-gray);
+    }
+    
+    .queue-item-number {
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    
+    .queue-item-priority {
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--gray);
+      color: var(--dark-gray);
+    }
+    
+    .queue-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    /* Announcement count */
+    .announcement-count {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--dark-gray);
       margin: 10px 0;
     }
     
-    .announce-btn {
-      background:rgb(173, 166, 65);
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px 5px;
+    /* Empty state */
+    .empty-state {
+      color: var(--dark-gray);
+      font-style: italic;
+      text-align: center;
+      padding: 20px 0;
     }
     
-    .next-btn {
-      background: #2196F3;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px 5px;
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      body {
+        grid-template-columns: 1fr;
+      }
+      
+      .side-panel {
+        grid-row: 2;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      
+      .side-panel > .card {
+        flex: 1 1 300px;
+      }
     }
     
-    .postpone-btn {
-      background: #f44336;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px 5px;
+    @media (max-width: 768px) {
+      .queue-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .btn {
+        width: 100%;
+      }
     }
-    
-    .pending-btn {
-      background: #FF9800;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px 5px;
-    }
-    
-    .announce-count {
-      font-size: 14px;
-      color: #666;
-      margin: 5px 0;
-    }
-    
-    .button-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 15px 0;
-    }
-    body {
-  font-family: Arial, sans-serif;
-  background: #f9f9f9;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  text-align: center; /* This will center all text by default */
-}
-
-/* Specific centering for elements that might need it */
-.queue-box, 
-.pending-box, 
-.postponed-box,
-.current-number,
-.current,
-.announce-count,
-.button-group {
-  text-align: center;
-}
-
-/* Center the upcoming queue items */
-.queue-box > div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Center the pending and postponed items */
-.pending-item, .postponed-item {
-  justify-content: center;
-  gap: 10px;
-}
-
-/* Center the action buttons */
-.pending-actions {
-  justify-content: center;
-}
-.complete-button {
-  margin-top: 15px;
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.complete-button:hover {
-  background-color: #388E3C;
-}
   </style>
 </head>
 <body>
-  <div class="pending-container">
-    <div class="pending-box">
-      <div class="pending-title">Pending Results</div>
-      <?php foreach ($pendingQueues as $q): ?>
-        <div class="pending-item">
-          <span class="pending-number"><?= $q['queue_num'] ?></span>
-          <div class="pending-actions">
-            <button class="pending-call-btn" onclick="callPendingQueue('<?= $q['queue_num'] ?>')" title="Call patient back">
-              📢
+  <!-- Left Side Panel -->
+  <div class="side-panel">
+    <div class="card">
+      <div class="card-header">
+        <span>Pending Results</span>
+      </div>
+      <div class="card-body">
+        <?php foreach ($pendingQueues as $q): ?>
+          <div class="queue-item">
+            <span class="queue-item-number"><?= $q['queue_num'] ?></span>
+            <div class="queue-item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="callPendingQueue('<?= $q['queue_num'] ?>')" title="Call patient back">
+                📢 Call
+              </button>
+              <form method="post" style="display:inline;">
+                <input type="hidden" name="qid" value="<?= $q['qid'] ?>">
+                <button type="submit" name="complete_pending" class="btn btn-success btn-sm" title="Mark as completed">
+                  ✓ Complete
+                </button>
+              </form>
+            </div>
+          </div>
+        <?php endforeach; ?>
+        <?php if (empty($pendingQueues)): ?>
+          <div class="empty-state">No pending queues</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="card current-queue">
+      <h1><?= htmlspecialchars($deptName) ?> Queue</h1>
+      
+      <?php if ($currentQueue): ?>
+        <div class="queue-details">
+          <div>Currently Serving</div>
+          <div class="queue-number"><?= $currentQueue['queue_num'] ?></div>
+          <div><?= htmlspecialchars($currentQueue['service_name']) ?></div>
+          <div>Priority: <?= ucfirst($currentQueue['priority']) ?></div>
+        </div>
+        
+        <div class="announcement-count">
+          Announcements: <?= $currentQueue['announcement_count'] ?? 0 ?>/3
+        </div>
+        
+        <div class="queue-actions">
+  <?php if (($currentQueue['announcement_count'] ?? 0) < 3): ?>
+    <button class="announce-btn btn btn-primary" onclick="announceCurrentQueue()">
+      📢 Announce
+    </button>
+  <?php else: ?>
+    <button class="announce-btn btn btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">
+      📢 Announce (Max 3)
+    </button>
+  <?php endif; ?>
+  
+  <?php if (!$hasUpcomingQueues): ?>
+    <form method="post">
+      <input type="hidden" name="qid" value="<?= $currentQueue['qid'] ?>">
+      <button type="submit" name="complete_current" class="btn btn-success">
+        ✓ Mark as Completed
+      </button>
+    </form>
+  <?php endif; ?>
+  
+  <form method="post" style="display:inline;">
+    <button type="submit" name="pending_queue" class="btn btn-warning">
+      ⏳ Mark as Pending
+    </button>
+  </form>
+  
+  <?php if (($currentQueue['announcement_count'] ?? 0) >= 3): ?>
+    <form method="post" style="display:inline;">
+      <button type="submit" name="postpone_queue" class="btn btn-danger">
+        ↻ Postpone Queue
+      </button>
+    </form>
+  <?php endif; ?>
+</div>
+      <?php else: ?>
+        <div class="empty-state">No active queue</div>
+      <?php endif; ?>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>Upcoming Queues</span>
+        <?php if ($hasUpcomingQueues): ?>
+          <form method="post" style="display:inline;">
+            <button type="submit" name="next_in_queue" class="btn btn-primary btn-sm">
+              Next in Queue →
             </button>
+          </form>
+        <?php endif; ?>
+      </div>
+      <div class="card-body">
+        <?php if (count($allUpcomingQueues) > 0): ?>
+          <?php foreach (array_slice($allUpcomingQueues, 0, 5) as $q): ?>
+            <div class="queue-item">
+              <span class="queue-item-number"><?= $q['queue_num'] ?></span>
+              <span class="queue-item-priority"><?= ucfirst($q['priority']) ?></span>
+            </div>
+          <?php endforeach; ?>
+          <?php if (count($allUpcomingQueues) > 5): ?>
+            <div style="text-align: center; color: var(--dark-gray); font-size: 0.9rem;">
+              +<?= count($allUpcomingQueues) - 5 ?> more in queue
+            </div>
+          <?php endif; ?>
+        <?php else: ?>
+          <div class="empty-state">No upcoming queues</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side Panel -->
+  <div class="side-panel">
+    <div class="card">
+      <div class="card-header">
+        <span>Postponed</span>
+      </div>
+      <div class="card-body">
+        <?php foreach ($postponedQueues as $q): ?>
+          <div class="queue-item">
+            <span class="queue-item-number"><?= $q['queue_num'] ?></span>
             <form method="post" style="display:inline;">
               <input type="hidden" name="qid" value="<?= $q['qid'] ?>">
-              <button type="submit" name="complete_pending" class="pending-complete-btn" title="Mark as completed">
-                ✓
+              <button type="submit" name="reactivate" class="btn btn-secondary btn-sm" 
+                      title="Return to end of waiting queue">
+                ↻ Reactivate
               </button>
             </form>
           </div>
-        </div>
-      <?php endforeach; ?>
-      <?php if (empty($pendingQueues)): ?>
-        <div style="color:#888; font-size:14px;">None</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
- 
-  <div class="queue-box">
-    <h1><?= htmlspecialchars($deptName) ?> Queue</h1>
-    
-    <?php if ($currentQueue): ?>
-      <div class="current">In-progress</div>
-      <div class="current-number"><?= $currentQueue['queue_num'] ?></div>
-      <div>
-        <?= htmlspecialchars($currentQueue['service_name']) ?> |
-        Priority: <?= ucfirst($currentQueue['priority']) ?>
-      </div>
-      <div class="announce-count">
-        Announcements: <?= $currentQueue['announcement_count'] ?? 0 ?>/3
-      </div>
-      
-      <div class="button-group">
-        <button class="announce-btn" onclick="announceCurrentQueue()">
-          Announce
-        </button>
-        
-        <?php if (!$hasUpcomingQueues): ?>
-          <form method="post">
-            <input type="hidden" name="qid" value="<?= $currentQueue['qid'] ?>">
-            <button type="submit" name="complete_current" class="complete-button">
-              Mark as Completed
-            </button>
-          </form>
-        <?php endif; ?>
-        
-        <form method="post" style="display:inline;">
-          <button type="submit" name="pending_queue" class="pending-btn">
-            Mark as Pending
-          </button>
-        </form>
-        
-        <?php if (($currentQueue['announcement_count'] ?? 0) >= 3): ?>
-          <form method="post" id="postponeForm" style="display:inline;">
-            <button type="submit" name="postpone_queue" class="postpone-btn">
-              Postpone Queue
-            </button>
-          </form>
-        <?php endif; ?>
-      </div>
-    <?php else: ?>
-      <div style="color:#888; font-style:italic;">No active queue</div>
-    <?php endif; ?>
-
-    <?php if ($hasUpcomingQueues): ?>
-      <form method="post" style="margin: 20px 0;">
-        <button type="submit" name="next_in_queue" class="next-button">Next in Queue</button>
-      </form>
-    <?php endif; ?>
-
-    <h3>Upcoming</h3>
-    <div>
-      <?php if (count($allUpcomingQueues) > 0): ?>
-        <?php foreach (array_slice($allUpcomingQueues, 0, 5) as $q): ?>
-          <div><?= $q['queue_num'] ?> (<?= ucfirst($q['priority']) ?>)</div>
         <?php endforeach; ?>
-      <?php else: ?>
-        <div style="color:#888; font-style:italic;">No upcoming queues</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
- <div class="postponed-container">
-    <div class="postponed-box">
-      <div class="postponed-title">Postponed</div>
-      <?php foreach ($postponedQueues as $q): ?>
-        <div class="postponed-item">
-          <span class="postponed-number"><?= $q['queue_num'] ?></span>
-          <form method="post" style="display:inline;">
-            <input type="hidden" name="qid" value="<?= $q['qid'] ?>">
-            <button type="submit" name="reactivate" class="reactivate-btn" 
-                    title="Return to end of waiting queue">
-              ↻
-            </button>
-          </form>
-        </div>
-      <?php endforeach; ?>
-      <?php if (empty($postponedQueues)): ?>
-        <div style="color:#888; font-size:14px;">None</div>
-      <?php endif; ?>
+        <?php if (empty($postponedQueues)): ?>
+          <div class="empty-state">No postponed queues</div>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
 
@@ -679,7 +746,7 @@ function initializeAnnouncements() {
   announcementSystem.init();
   
   <?php if (isset($currentQueue) && $currentQueue): ?>
-    // Auto-announce on page load for X-ray department
+    // Auto-announce on page load 
     if (window.location.pathname.includes('queue_sw.php')) {
       const announcedKey = `announced_${<?= $currentQueue['queue_num'] ?>}_<?= $departmentId ?>`;
       if (!localStorage.getItem(announcedKey)) {

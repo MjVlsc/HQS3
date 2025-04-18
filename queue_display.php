@@ -335,7 +335,7 @@ foreach ($departments as $department) {
 <div class="sidebar">
   <h2>HOSPITAL</h2>
   <a href="add_patient_q.php" class="nav-link"><i class="fas fa-user-plus icon"></i><span>PATIENT TO QUEUE</span></a>
-  <a href="queue_list.php" class="nav-link"><i class="fas fa-list-alt icon"></i><span>QUEUE HISTORY</span></a>
+  <a href="queue_list.php" class="nav-link"><i class="fas fa-list-alt icon"></i><span>QUEUE LOG</span></a>
   <a href="queue_display_user.php" class="nav-link" target="_blank"><i class="fas fa-bullhorn icon"></i><span>NOW SERVING</span></a>
 </div>
 

@@ -466,7 +466,7 @@ foreach ($departments as $department) {
   </a>
   <a href="queue_list.php" class="nav-link">
     <i class="fas fa-list-alt icon" aria-hidden="true"></i>
-    <span>QUEUE HISTORY</span>
+    <span>QUEUE LOG</span>
   </a>
   <a href="mainpage.php" class="nav-link">
     <i class="fas fa-stream icon" aria-hidden="true"></i>
@@ -482,6 +482,10 @@ foreach ($departments as $department) {
     <i class="fas fa-bullhorn icon" aria-hidden="true"></i>
     <span>NOW SERVING</span>
   </a>
+  <a href="audit_log.php" class="nav-link" target="_blank">
+  <i class="fas fa-clipboard-list icon" aria-hidden="true"></i>
+  <span>AUDIT LOG</span>
+</a>
   <button class="nav-link" id="logoutBtn" style="margin-top: auto; background: none; border: none; cursor: pointer; text-align: left;">
     <i class="fas fa-sign-out-alt icon" aria-hidden="true"></i>
     <span>LOGOUT</span>

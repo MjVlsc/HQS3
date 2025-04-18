@@ -1,6 +1,7 @@
 <?php
 session_start();
 require('lib/conn.php');
+require('lib/audit.php'); 
 
 // Check if user is logged in, otherwise redirect to login
 if (!isset($_SESSION['user_id'])) {
@@ -8,10 +9,8 @@ if (!isset($_SESSION['user_id'])) {
   exit();
 }
 
-
 // Fetch departments from the departments table, excluding specific department IDs
 $departments = $conn->query("SELECT * FROM departments WHERE dept_id NOT IN (9, 10, 11, 12)")->fetchAll();
-
 
 // Initialize an empty array for services
 $departmentServices = [];
@@ -54,69 +53,95 @@ try {
     echo "Error fetching priorities: " . $e->getMessage();
 }
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $service_name = $_POST['service_name']; // Manual input
-    $department_id = $_POST['department_id'];
-    $priority = $_POST['priority'];
+  $service_names = $_POST['service_name']; // Array of selected services
+  $department_id = $_POST['department_id'];
+  $priority = $_POST['priority'];
 
-    // Department ID to prefix mapping
-    $departmentPrefixes = [
-        1 => 'BIL-',    // Billing
-        2 => 'PHA-',   // Pharmacy
-        3 => 'MED-',    // Medical Records
-        4 => 'ULT-',    // Ultra-sound
-        5 => 'XR-',     // X-ray
-        6 => 'REH-',    // Rehabilitation
-        7 => 'DIA-',    // Dialysis
-        8 => 'LAB-',    // Laboratory
-        9 => 'ADM-',    // Admitting
-        10 => 'HMO-',   // HMO
-        11 => 'INF-',   // Information
-        13 => 'ER-',   // Emergency Room
-        14 => 'SW-'   // Social Worker
-    ];
+  // Combine multiple services into a comma-separated string
+  $combined_services = implode(", ", $service_names);
 
-    // Get the prefix for the department
-    $prefix = $departmentPrefixes[$department_id] ?? 'GEN';
+  // Department ID to prefix mapping
+  $departmentPrefixes = [
+      1 => 'BIL-',    // Billing
+      2 => 'PHA-',   // Pharmacy
+      3 => 'MED-',    // Medical Records
+      4 => 'ULT-',    // Ultra-sound
+      5 => 'XR-',     // X-ray
+      6 => 'REH-',    // Rehabilitation
+      7 => 'DIA-',    // Dialysis
+      8 => 'LAB-',    // Laboratory
+      9 => 'ADM-',    // Admitting
+      10 => 'HMO-',   // HMO
+      11 => 'INF-',   // Information
+      13 => 'ER-',   // Emergency Room
+      14 => 'SW-'   // Social Worker
+  ];
 
-    // Fetch the last queue number globally (regardless of department)
-    $stmt = $conn->prepare("SELECT queue_num FROM queues ORDER BY qid DESC LIMIT 1");
-    $stmt->execute();
-    $lastQueue = $stmt->fetch(PDO::FETCH_ASSOC);
+  // Get the prefix for the department
+  $prefix = $departmentPrefixes[$department_id] ?? 'GEN';
 
-    // Extract numeric part from the last queue number
-    if ($lastQueue && preg_match('/(\d+)$/', $lastQueue['queue_num'], $matches)) {
-        $lastNum = intval($matches[1]);
-    } else {
-        $lastNum = 0;
-    }
+  // Fetch the last queue number globally (regardless of department)
+  $stmt = $conn->prepare("SELECT queue_num FROM queues ORDER BY qid DESC LIMIT 1");
+  $stmt->execute();
+  $lastQueue = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Pad to 3 digits for the next queue number
-    $numericPart = str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
-    $queue_num = $prefix . $numericPart;
+  // Extract numeric part from the last queue number
+  if ($lastQueue && preg_match('/(\d+)$/', $lastQueue['queue_num'], $matches)) {
+      $lastNum = intval($matches[1]);
+  } else {
+      $lastNum = 0;
+  }
 
-    try {
-        // Insert into the queues table
-        $sql = "INSERT INTO queues (queue_num, service_name, department_id, status, priority, created_at)
-                VALUES (:queue_num, :service_name, :department_id, 'waiting', :priority, NOW())";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([
-            ':queue_num' => $queue_num,
-            ':service_name' => $service_name,
-            ':department_id' => $department_id,
-            ':priority' => $priority
-        ]);
-        if ($role == "Admin"){
-          header("Location: queue_display_admin.php");
-        } else{
-          header("Location: queue_display.php");
-        }
-        
-        exit();
-    } catch (PDOException $e) {
-        echo "Error adding to queue: " . $e->getMessage();
-    }
+  try {
+      // Increment queue number once for all services
+      $lastNum++;
+      $numericPart = str_pad($lastNum, 3, '0', STR_PAD_LEFT);
+      $queue_num = $prefix . $numericPart;
+
+      // Insert into the queues table (single record for all services)
+      $sql = "INSERT INTO queues (queue_num, service_name, department_id, status, priority, created_at)
+              VALUES (:queue_num, :service_name, :department_id, 'waiting', :priority, NOW())";
+      $stmt = $conn->prepare($sql);
+      $stmt->execute([
+          ':queue_num' => $queue_num,
+          ':service_name' => $combined_services,
+          ':department_id' => $department_id,
+          ':priority' => $priority
+      ]);
+      
+      // Get the inserted queue ID
+      $queueId = $conn->lastInsertId();
+      
+      // Log the action
+      $actionDetails = json_encode([
+          'queue_num' => $queue_num,
+          'service_name' => $combined_services,
+          'department_id' => $department_id,
+          'priority' => $priority
+      ]);
+      
+      logAction(
+          $conn,
+          'ADD_QUEUE',
+          'queues',
+          $queueId,
+          $_SESSION['user_id'],
+          $_SESSION['username'],
+          $_SESSION['role'],
+          $actionDetails
+      );
+      
+      if ($role == "Admin"){
+        header("Location: queue_display_admin.php");
+      } else{
+        header("Location: queue_display.php");
+      }
+      exit();
+  } catch (PDOException $e) {
+      echo "Error adding to queue: " . $e->getMessage();
+  }
+
 }
 ?>
 
@@ -128,6 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Add Patient to Queue</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
   <style>
     :root {
       --primary-color: #3498db;
@@ -190,14 +218,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-bottom: 0.5rem;
     }
     
-    .form-control, .form-select {
+    .form-control, .form-select, .select2-selection {
       padding: 0.75rem 1rem;
       border-radius: 8px;
       border: 1px solid #ced4da;
       transition: all 0.3s;
     }
     
-    .form-control:focus, .form-select:focus {
+    .form-control:focus, .form-select:focus, .select2-selection:focus {
       border-color: var(--primary-color);
       box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
     }
@@ -247,12 +275,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: #7f8c8d;
     }
     
-    .footer {
-      background-color: var(--dark-color);
+    /* Select2 custom styles */
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+      background-color: var(--primary-color);
       color: white;
-      padding: 1.5rem 0;
-      margin-top: auto;
-      text-align: center;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+      color: white;
+      margin-right: 4px;
     }
     
     @media (max-width: 768px) {
@@ -269,8 +309,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="d-flex justify-content-between align-items-center">
         <h1 class="m-0"><i class="fas fa-hospital-alt me-2"></i>Hospital Queue System</h1>
         <a href="<?php echo ($role == 'Admin') ? 'queue_display_admin.php' : 'queue_display.php'; ?>" class="btn btn-outline-light">
-  <i class="fas fa-tv me-2"></i>View Display
-</a>
+          <i class="fas fa-tv me-2"></i>View Display
+        </a>
       </div>
     </div>
   </header>
@@ -281,7 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       
       <div class="info-box">
         <h5><i class="fas fa-info-circle me-2"></i>Instructions</h5>
-        <p>Please select the department, service, and priority level to generate a queue number for the patient.</p>
+        <p>Please select the department, services, and priority level to generate queue numbers for the patient.</p>
       </div>
       
       <!-- Show error message if any -->
@@ -308,19 +348,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
           </div>
 
-          <!-- Service Dropdown -->
+          <!-- Service Dropdown - Now Multiple Select -->
           <div class="col-md-6 mb-4">
             <label for="service_name" class="form-label">
-              <i class="fas fa-procedures me-2"></i>Service
+              <i class="fas fa-procedures me-2"></i>Services
             </label>
-            <select class="form-select" name="service_name" id="service_name" required>
-              <option value="">Select Service</option>
+            <select class="form-select" name="service_name[]" id="service_name" multiple="multiple" required>
               <?php if (!empty($departmentServices)): ?>
                   <?php foreach ($departmentServices as $service): ?>
                       <option value="<?= htmlspecialchars($service) ?>"><?= htmlspecialchars($service) ?></option>
                   <?php endforeach; ?>
               <?php endif; ?>
             </select>
+            <small class="text-muted">Select one or more services</small>
           </div>
         </div>
 
@@ -351,28 +391,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 
-  <!-- JavaScript to Update Service Dropdown -->
+  <!-- jQuery (required for Select2) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    const departmentSelect = document.getElementById('department_id');
-    departmentSelect.addEventListener('change', function () {
-        const selectedDept = this.value;
-        if (selectedDept) {
-            window.location.href = `add_patient_q.php?department_id=${selectedDept}`;
-        }
-    });
-    
-    // Enhance form controls
-    document.querySelectorAll('.form-control, .form-select').forEach(element => {
-      element.addEventListener('focus', function() {
-        this.parentElement.querySelector('.form-label').style.color = 'var(--primary-color)';
-      });
-      
-      element.addEventListener('blur', function() {
-        this.parentElement.querySelector('.form-label').style.color = 'var(--dark-color)';
-      });
+    // Initialize Select2 for service multi-select
+    $(document).ready(function() {
+        $('#service_name').select2({
+            theme: 'bootstrap-5',
+            placeholder: "Select services...",
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Department change handler
+        const departmentSelect = document.getElementById('department_id');
+        departmentSelect.addEventListener('change', function() {
+            const selectedDept = this.value;
+            if (selectedDept) {
+                window.location.href = `add_patient_q.php?department_id=${selectedDept}`;
+            }
+        });
+        
+        // Form control enhancement
+        document.querySelectorAll('.form-control, .form-select').forEach(element => {
+            element.addEventListener('focus', function() {
+                this.parentElement.querySelector('.form-label').style.color = 'var(--primary-color)';
+            });
+            
+            element.addEventListener('blur', function() {
+                this.parentElement.querySelector('.form-label').style.color = 'var(--dark-color)';
+            });
+        });
+        
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const services = $('#service_name').val();
+            if (!services || services.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one service');
+            }
+        });
     });
   </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
